@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Decision Oversight Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F3ED;
+    --paper-dim:#EDE9DE;
+    --ink:#1C2530;
+    --ink-soft:#3A4553;
+    --slate:#5B6B7A;
+    --hairline:#D8D3C6;
+    --oxblood:#7A2E2E;
+    --oxblood-soft:#F4E4E1;
+    --green:#3F6B4F;
+    --green-soft:#E4ECE4;
+    --brass:#9C7A3C;
+    --brass-soft:#F1E9D6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:40px 24px 80px;}
+
+  /* Header */
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:20px;
+    margin-bottom:28px;
+    gap:24px;
+  }
+  header h1{
+    font-family:'Source Serif 4', serif;
+    font-size:30px;
+    font-weight:700;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--slate);
+    font-size:14.5px;
+    max-width:560px;
+  }
+  .case-tag{
+    text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--slate);
+    white-space:nowrap;
+    padding-top:4px;
+  }
+  .case-tag strong{display:block;color:var(--ink);font-size:13px;letter-spacing:.04em;}
+
+  .footnote{
+    font-size:12.5px;
+    color:var(--slate);
+    border-top:1px solid var(--hairline);
+    margin-top:48px;
+    padding-top:16px;
+    font-family:'IBM Plex Mono', monospace;
+    line-height:1.7;
+  }
+
+  /* Section headers */
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin:44px 0 14px;
+  }
+  .section-head h2{
+    font-family:'Source Serif 4', serif;
+    font-size:19px;
+    margin:0;
+    font-weight:600;
+  }
+  .section-head .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.09em;
+    color:var(--brass);
+    text-transform:uppercase;
+    display:block;
+    margin-bottom:2px;
+  }
+  .section-note{font-size:13px;color:var(--slate);}
+
+  /* Config panel */
+  .config{
+    background:var(--paper-dim);
+    border:1px solid var(--hairline);
+    padding:20px 22px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px 32px;
+  }
+  @media(max-width:720px){.config{grid-template-columns:1fr;}}
+  .config-block label{
+    display:block;
+    font-size:13px;
+    font-weight:500;
+    margin-bottom:6px;
+  }
+  .config-block .val{
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--oxblood);
+    font-weight:600;
+  }
+  .config-block input[type=range]{
+    width:100%;
+    accent-color:var(--oxblood);
+  }
+  .config-hint{font-size:12px;color:var(--slate);margin-top:4px;}
+  .checks{display:flex;flex-direction:column;gap:8px;font-size:13px;}
+  .checks label{display:flex;align-items:center;gap:8px;font-weight:400;margin:0;}
+
+  /* Stat bar */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1px;
+    background:var(--hairline);
+    border:1px solid var(--hairline);
+  }
+  @media(max-width:820px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:var(--paper);padding:16px 14px;}
+  .stat .n{font-family:'Source Serif 4', serif;font-size:26px;font-weight:700;}
+  .stat .l{font-size:11.5px;color:var(--slate);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .stat.flagged .n{color:var(--oxblood);}
+
+  /* Queue cards */
+  .card{
+    position:relative;
+    border:1px solid var(--hairline);
+    background:var(--paper);
+    padding:18px 20px;
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .card-id{font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--slate);}
+  .card-name{font-family:'Source Serif 4', serif;font-size:17px;font-weight:600;margin:2px 0 2px;}
+  .badge{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:2px;
+  }
+  .badge.pip{background:var(--oxblood-soft);color:var(--oxblood);}
+  .badge.comp{background:var(--brass-soft);color:var(--brass);}
+  .badge.promo{background:var(--green-soft);color:var(--green);}
+  .badge.attrition{background:#E3E7EC;color:var(--ink-soft);}
+  .badge.noaction{background:#EEEEEE;color:#777;}
+
+  .conf{font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--slate);text-align:right;}
+  .conf b{color:var(--ink);}
+
+  .signals{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin:12px 0 10px;
+  }
+  .signal{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    background:var(--paper-dim);
+    border:1px solid var(--hairline);
+    padding:4px 8px;
+    color:var(--ink-soft);
+  }
+  .signal.hot{border-color:var(--oxblood);color:var(--oxblood);}
+
+  .rationale{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    background:var(--paper-dim);
+    border-left:3px solid var(--brass);
+    padding:10px 12px;
+    margin-bottom:12px;
+  }
+  .rationale b{color:var(--ink);}
+
+  .review-flag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--oxblood);
+    margin-bottom:10px;
+    letter-spacing:.02em;
+  }
+
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  button{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:2px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+  }
+  button.secondary{background:transparent;color:var(--ink);}
+  button.oxblood{background:var(--oxblood);border-color:var(--oxblood);}
+  button:focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
+  button:disabled{opacity:.4;cursor:default;}
+
+  .override-row{
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+    flex-wrap:wrap;
+  }
+  .override-row input[type=text]{
+    flex:1;
+    min-width:200px;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:12.5px;
+    padding:8px 10px;
+    border:1px solid var(--hairline);
+    background:var(--paper);
+  }
+
+  /* Stamp */
+  .stamp{
+    position:absolute;
+    top:14px;
+    right:18px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.06em;
+    border:2.5px solid;
+    border-radius:4px;
+    padding:4px 10px;
+    transform:rotate(-8deg);
+    text-transform:uppercase;
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .stamp.show{opacity:.88;}
+  .stamp.approved{color:var(--green);border-color:var(--green);}
+  .stamp.autoapproved{color:var(--slate);border-color:var(--slate);}
+  .stamp.overridden{color:var(--oxblood);border-color:var(--oxblood);}
+  .stamp.escalated{color:var(--brass);border-color:var(--brass);}
+
+  /* Chart */
+  .chart-wrap{display:flex;align-items:flex-end;gap:16px;height:120px;padding:10px 4px 0;}
+  .bar-col{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;height:100%;justify-content:flex-end;}
+  .bar{width:100%;max-width:46px;background:var(--brass);border-radius:2px 2px 0 0;}
+  .bar-label{font-size:10.5px;color:var(--slate);text-align:center;font-family:'IBM Plex Mono', monospace;}
+  .bar-val{font-size:11px;font-weight:600;color:var(--ink);}
+
+  /* Audit log */
+  .log-wrap{
+    border:1px solid var(--hairline);
+    background:var(--ink);
+    max-height:340px;
+    overflow-y:auto;
+  }
+  table.log{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono', monospace;font-size:11.5px;}
+  table.log th{
+    position:sticky;top:0;
+    background:var(--ink);
+    color:#8A96A3;
+    text-align:left;
+    padding:9px 12px;
+    font-weight:500;
+    border-bottom:1px solid #3A4553;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    font-size:10px;
+  }
+  table.log td{
+    padding:9px 12px;
+    color:#D7DBE0;
+    border-bottom:1px solid #2A3542;
+    vertical-align:top;
+  }
+  table.log tr:last-child td{border-bottom:none;}
+  .log-empty{padding:20px;color:#8A96A3;font-family:'IBM Plex Mono', monospace;font-size:12px;}
+  .tag-inline{
+    font-size:10px;
+    text-transform:uppercase;
+    padding:2px 6px;
+    border-radius:2px;
+    letter-spacing:.03em;
+  }
+  .tag-inline.approve{background:#25382C;color:#8FCBA0;}
+  .tag-inline.auto{background:#2A3542;color:#9AA7B4;}
+  .tag-inline.override{background:#3D2323;color:#E39B9B;}
+  .tag-inline.escalate{background:#3A3020;color:#D9B876;}
+
+  .empty-state{
+    padding:24px;
+    text-align:center;
+    color:var(--slate);
+    font-size:13px;
+    border:1px dashed var(--hairline);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>HR Decision Oversight Simulator</h1>
+      <p>A working model of human-in-the-loop governance over agentic HR decisions — PIP recommendations and comp adjustments driven by 360&nbsp;feedback and compa-ratio signals, routed through configurable approval checkpoints.</p>
+    </div>
+    <div class="case-tag">
+      <strong>CASE FILE NO. HR-2026-0714</strong>
+      Demo dataset · No real employee data<br>
+      Oversight log: live in-session
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <div><span class="eyebrow">01 — Configuration</span><h2>Risk Tier &amp; Escalation Policy</h2></div>
+      <div class="section-note">Adjust thresholds — the queue below recalculates instantly</div>
+    </div>
+    <div class="config">
+      <div class="config-block">
+        <label>Compa-ratio flag threshold — below <span class="val" id="compaVal">1.00</span> triggers review</label>
+        <input type="range" id="compaSlider" min="0.80" max="1.05" step="0.01" value="1.00">
+        <div class="config-hint">Salary ÷ range midpoint. Only paired with a high-performer signal does this raise a comp flag.</div>
+      </div>
+      <div class="config-block">
+        <label>High-performer 360 bar — aggregate score ≥ <span class="val" id="perfVal">4.20</span></label>
+        <input type="range" id="perfSlider" min="3.50" max="4.80" step="0.05" value="4.20">
+        <div class="config-hint">Minimum aggregate 360 rating to count as a "high performer" for pay-compression logic.</div>
+      </div>
+      <div class="config-block">
+        <label>Mandatory human review required for:</label>
+        <div class="checks">
+          <label><input type="checkbox" id="chkPip" checked> PIP recommendations</label>
+          <label><input type="checkbox" id="chkComp" checked> Comp adjustments above 4%</label>
+          <label><input type="checkbox" id="chkPromo"> Promotion flags</label>
+          <label><input type="checkbox" id="chkAttr" checked> Attrition-risk flags</label>
+        </div>
+      </div>
+      <div class="config-block">
+        <label>Everything else</label>
+        <div class="config-hint" style="margin-top:0;">Decisions not requiring mandatory review auto-approve on load, but remain fully overridable by a reviewer at any time.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><span class="eyebrow">02 — Outcomes</span><h2>Session Summary</h2></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="statTotal">–</div><div class="l">Decisions processed</div></div>
+      <div class="stat"><div class="n" id="statOverride">–</div><div class="l">Override rate</div></div>
+      <div class="stat"><div class="n" id="statEscalate">–</div><div class="l">Escalation rate</div></div>
+      <div class="stat flagged"><div class="n" id="statCompFlag">–</div><div class="l">Pay-compression flags raised</div></div>
+      <div class="stat"><div class="n" id="statCompApprove">–</div><div class="l">...of which approved</div></div>
+    </div>
+
+    <div class="section-head" style="margin-top:26px;">
+      <div><span class="eyebrow">Override reasons</span><h2 style="font-size:15px;">Breakdown by category</h2></div>
+    </div>
+    <div class="chart-wrap" id="chart"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><span class="eyebrow">03 — Queue</span><h2>Decision Queue</h2></div>
+      <div class="section-note" id="queueCount"></div>
+    </div>
+    <div id="queue"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><span class="eyebrow">04 — Record</span><h2>Audit Log</h2></div>
+      <div class="section-note">Immutable within session · newest entry on top</div>
+    </div>
+    <div class="log-wrap">
+      <table class="log">
+        <thead><tr><th style="width:110px;">Timestamp</th><th style="width:90px;">Actor</th><th style="width:100px;">Action</th><th>Decision &amp; rationale referenced</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+      <div class="log-empty" id="logEmpty">No actions taken yet — decisions you approve, override, or escalate above will be recorded here.</div>
+    </div>
+  </section>
+
+  <div class="footnote">
+    GOVERNANCE NOTE — This simulator demonstrates two applied concepts: (1) EU AI Act Article&nbsp;14 human oversight requirements, by routing higher-impact or lower-confidence agentic HR decisions through a mandatory human checkpoint rather than full automation; and (2) NIST AI RMF "Govern" function, by making the decision policy (risk tiers, thresholds) configurable and auditable rather than fixed inside the model. The pay-compression logic specifically models proactive fairness monitoring — flagging under-market pay only where it intersects with sustained high performance, and explicitly suppressing action on average performers below midpoint, so the audit trail shows the system reasoning about who the policy applies to, not applying it uniformly.
+  </div>
+
+</div>
+
+<script>
+(function(){
+  // ---------- Seed data ----------
+  // perfTier: top | high | average | low
+  const employees = [
+    // PIP cases — driven by 360 + performance trend
+    {id:'E-1042', name:'M. Alvarez', type:'pip', perfTier:'low', threeSixty:2.1, themes:['missed deadlines','communication gaps'], trend:'declining 3 cycles', tenure:2.1, confidence:0.88},
+    {id:'E-1077', name:'J. Whitfield', type:'pip', perfTier:'low', threeSixty:2.4, themes:['stakeholder friction','inconsistent delivery'], trend:'declining 2 cycles', tenure:0.9, confidence:0.81},
+    {id:'E-1103', name:'R. Okonkwo', type:'pip', perfTier:'average', threeSixty:2.8, themes:['scope creep on projects','peer feedback: reliability'], trend:'flat, below target', tenure:3.4, confidence:0.74},
+    {id:'E-1156', name:'A. Petrova', type:'pip', perfTier:'low', threeSixty:2.0, themes:['repeated quality issues','manager escalations x2'], trend:'declining 4 cycles', tenure:1.6, confidence:0.91},
+
+    // Comp adjustment — pay compression flags (top performer + compa-ratio < threshold)
+    {id:'E-2011', name:'D. Chen', type:'comp', perfTier:'top', threeSixty:4.7, compaRatio:0.87, pctChange:6.5, tenure:3.8, confidence:0.93},
+    {id:'E-2044', name:'S. Nakamura', type:'comp', perfTier:'top', threeSixty:4.6, compaRatio:0.91, pctChange:5.0, tenure:2.5, confidence:0.90},
+    {id:'E-2078', name:'K. Adeyemi', type:'comp', perfTier:'high', threeSixty:4.3, compaRatio:0.89, pctChange:4.2, tenure:4.1, confidence:0.85},
+    {id:'E-2099', name:'L. Fitzgerald', type:'comp', perfTier:'top', threeSixty:4.8, compaRatio:0.83, pctChange:7.0, tenure:5.2, confidence:0.95},
+
+    // Comp — correctly suppressed no-action cases (below midpoint but NOT high performer)
+    {id:'E-2130', name:'T. Brennan', type:'comp', perfTier:'average', threeSixty:3.4, compaRatio:0.88, pctChange:0, tenure:2.0, confidence:0.79, noAction:true},
+    {id:'E-2151', name:'P. Marchetti', type:'comp', perfTier:'average', threeSixty:3.1, compaRatio:0.92, pctChange:0, tenure:1.4, confidence:0.76, noAction:true},
+    {id:'E-2172', name:'H. Osei', type:'comp', perfTier:'low', threeSixty:2.6, compaRatio:0.85, pctChange:0, tenure:0.8, confidence:0.82, noAction:true},
+
+    // Promotion flags
+    {id:'E-3021', name:'V. Kowalski', type:'promo', perfTier:'top', threeSixty:4.7, trend:'top-quartile 4 cycles', tenure:3.1, confidence:0.87},
+    {id:'E-3055', name:'N. Delacroix', type:'promo', perfTier:'top', threeSixty:4.5, trend:'top-quartile 3 cycles', tenure:2.2, confidence:0.83},
+    {id:'E-3081', name:'B. Yilmaz', type:'promo', perfTier:'high', threeSixty:4.1, trend:'strong 2 cycles, scope expanded', tenure:4.6, confidence:0.77},
+
+    // Attrition risk
+    {id:'E-4014', name:'C. Nwosu', type:'attrition', perfTier:'top', threeSixty:4.4, engagement:2.1, tenure:3.9, confidence:0.86, note:'engagement dip + market comp gap'},
+    {id:'E-4062', name:'I. Sørensen', type:'attrition', perfTier:'high', threeSixty:4.0, engagement:2.4, tenure:2.7, confidence:0.79, note:'reduced internal mobility signals'},
+    {id:'E-4090', name:'G. Papadakis', type:'attrition', perfTier:'average', threeSixty:3.3, engagement:2.6, tenure:1.1, confidence:0.68, note:'below-tenure flight risk pattern'},
+  ];
+
+  const state = { decisions:{}, log:[] };
+
+  function fmtPct(n){ return (n*100).toFixed(0)+'%'; }
+
+  function config(){
+    return {
+      compaThresh: parseFloat(document.getElementById('compaSlider').value),
+      perfBar: parseFloat(document.getElementById('perfSlider').value),
+      reqPip: document.getElementById('chkPip').checked,
+      reqComp: document.getElementById('chkComp').checked,
+      reqPromo: document.getElementById('chkPromo').checked,
+      reqAttr: document.getElementById('chkAttr').checked,
+    };
+  }
+
+  function isHighPerformer(e, cfg){
+    return e.perfTier === 'top' || (e.perfTier === 'high' && e.threeSixty >= cfg.perfBar) || e.threeSixty >= cfg.perfBar;
+  }
+
+  function evaluate(e, cfg){
+    // returns {label, recommend, rationale, requiresReview, isNoAction}
+    if(e.type === 'pip'){
+      const rec = 'Recommend Performance Improvement Plan';
+      const rationale = `360 aggregate ${e.threeSixty.toFixed(1)}/5 (themes: ${e.themes.join('; ')}); performance trend ${e.trend}.`;
+      return {label:'PIP', rec, rationale, requiresReview: cfg.reqPip};
+    }
+    if(e.type === 'comp'){
+      const highPerf = isHighPerformer(e, cfg);
+      const belowMid = e.compaRatio < cfg.compaThresh;
+      if(highPerf && belowMid){
+        const rec = `Recommend market adjustment (+${e.pctChange.toFixed(1)}%)`;
+        const rationale = `Compa-ratio ${e.compaRatio.toFixed(2)} vs. midpoint (threshold ${cfg.compaThresh.toFixed(2)}); 360 feedback aggregate ${e.threeSixty.toFixed(1)}/5, ${e.perfTier}-tier performance — pay compression risk on a high performer.`;
+        return {label:'Comp adjustment', rec, rationale, requiresReview: cfg.reqComp && e.pctChange > 4, isFlag:true};
+      } else {
+        const rec = 'No action recommended';
+        const rationale = `Compa-ratio ${e.compaRatio.toFixed(2)} is below midpoint, but 360 aggregate ${e.threeSixty.toFixed(1)}/5 and ${e.perfTier}-tier performance do not meet the high-performer bar (${cfg.perfBar.toFixed(2)}) — policy does not flag pay compression here.`;
+        return {label:'Comp — no action', rec, rationale, requiresReview:false, isNoAction:true};
+      }
+    }
+    if(e.type === 'promo'){
+      const rec = 'Recommend promotion review';
+      const rationale = `360 aggregate ${e.threeSixty.toFixed(1)}/5; ${e.trend}; tenure ${e.tenure.toFixed(1)}y.`;
+      return {label:'Promotion', rec, rationale, requiresReview: cfg.reqPromo};
+    }
+    if(e.type === 'attrition'){
+      const rec = 'Flag as attrition risk';
+      const rationale = `Engagement score ${e.engagement.toFixed(1)}/5, ${e.perfTier}-tier performer, tenure ${e.tenure.toFixed(1)}y — ${e.note}.`;
+      return {label:'Attrition risk', rec, rationale, requiresReview: cfg.reqAttr};
+    }
+  }
+
+  function badgeClass(type, isNoAction){
+    if(isNoAction) return 'noaction';
+    if(type==='pip') return 'pip';
+    if(type==='comp') return 'comp';
+    if(type==='promo') return 'promo';
+    return 'attrition';
+  }
+
+  function nowStamp(){
+    const d = new Date();
+    return d.toTimeString().slice(0,8);
+  }
+
+  function addLog(actor, action, tagClass, detail){
+    state.log.unshift({ts: nowStamp(), actor, action, tagClass, detail});
+    renderLog();
+  }
+
+  function renderLog(){
+    const body = document.getElementById('logBody');
+    const empty = document.getElementById('logEmpty');
+    if(state.log.length === 0){ body.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    body.innerHTML = state.log.map(row => `
+      <tr>
+        <td>${row.ts}</td>
+        <td>${row.actor}</td>
+        <td><span class="tag-inline ${row.tagClass}">${row.action}</span></td>
+        <td>${row.detail}</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderQueue(){
+    const cfg = config();
+    const wrap = document.getElementById('queue');
+    let html = '';
+    employees.forEach(e => {
+      const ev = evaluate(e, cfg);
+      if(!state.decisions[e.id] || state.decisions[e.id].evalLabel !== ev.label){
+        // (re)initialize decision state on config change if the evaluation outcome changed
+        state.decisions[e.id] = { status: ev.requiresReview ? 'pending' : (ev.isNoAction ? 'closed' : 'auto'), evalLabel: ev.label };
+      }
+      const d = state.decisions[e.id];
+      const stampClass = d.status==='approved' ? 'approved' : d.status==='auto' ? 'autoapproved' : d.status==='overridden' ? 'overridden' : d.status==='escalated' ? 'escalated' : '';
+      const stampText = d.status==='approved' ? 'Approved' : d.status==='auto' ? 'Auto-approved' : d.status==='overridden' ? 'Overridden' : d.status==='escalated' ? 'Escalated' : '';
+      const showStamp = d.status !== 'pending' && d.status !== 'closed';
+
+      const signals = [];
+      if(e.threeSixty !== undefined) signals.push(`<span class="signal ${ev.isFlag?'hot':''}">360: ${e.threeSixty.toFixed(1)}/5</span>`);
+      if(e.compaRatio !== undefined) signals.push(`<span class="signal ${ev.isFlag?'hot':''}">Compa-ratio: ${e.compaRatio.toFixed(2)}</span>`);
+      if(e.perfTier) signals.push(`<span class="signal">Tier: ${e.perfTier}</span>`);
+      if(e.tenure !== undefined) signals.push(`<span class="signal">Tenure: ${e.tenure.toFixed(1)}y</span>`);
+      if(e.engagement !== undefined) signals.push(`<span class="signal">Engagement: ${e.engagement.toFixed(1)}/5</span>`);
+
+      html += `
+      <div class="card" data-id="${e.id}">
+        ${showStamp ? `<div class="stamp show ${stampClass}">${stampText}</div>` : ''}
+        <div class="card-top">
+          <div>
+            <div class="card-id">${e.id}</div>
+            <div class="card-name">${e.name}</div>
+            <span class="badge ${badgeClass(e.type, ev.isNoAction)}">${ev.label}</span>
+          </div>
+          <div class="conf">Confidence<br><b>${fmtPct(e.confidence)}</b></div>
+        </div>
+        <div class="signals">${signals.join('')}</div>
+        <div class="rationale"><b>AI recommendation:</b> ${ev.rec}. ${ev.rationale}</div>
+        ${ev.requiresReview && d.status==='pending' ? '<div class="review-flag">⚑ MANDATORY HUMAN REVIEW — routed by current risk-tier policy</div>' : ''}
+        ${d.status === 'closed' ? '' : renderActions(e.id, d)}
+        <div class="override-row" id="override-${e.id}" style="display:none;">
+          <input type="text" placeholder="Override reason (required)" id="reason-${e.id}">
+          <button onclick="OversightSim.submitOverride('${e.id}')">Submit override</button>
+          <button class="secondary" onclick="OversightSim.cancelOverride('${e.id}')">Cancel</button>
+        </div>
+      </div>`;
+    });
+    wrap.innerHTML = html;
+    document.getElementById('queueCount').textContent = `${employees.length} decisions in view`;
+    renderStats();
+    renderChart();
+  }
+
+  function renderActions(id, d){
+    const disabledApprove = d.status==='approved' || d.status==='auto' ? 'disabled' : '';
+    return `
+      <div class="actions">
+        <button ${disabledApprove} onclick="OversightSim.approve('${id}')">Approve</button>
+        <button class="oxblood" onclick="OversightSim.showOverride('${id}')">Override</button>
+        <button class="secondary" onclick="OversightSim.escalate('${id}')">Escalate</button>
+      </div>`;
+  }
+
+  window.OversightSim = {
+    approve(id){
+      state.decisions[id].status = 'approved';
+      const e = employees.find(x=>x.id===id);
+      addLog('Reviewer', 'Approve', 'approve', `${id} — ${e.name}: AI recommendation approved as-is.`);
+      renderQueue();
+    },
+    showOverride(id){
+      document.getElementById(`override-${id}`).style.display = 'flex';
+    },
+    cancelOverride(id){
+      document.getElementById(`override-${id}`).style.display = 'none';
+    },
+    submitOverride(id){
+      const input = document.getElementById(`reason-${id}`);
+      const reason = input.value.trim();
+      if(!reason){ input.style.borderColor = 'var(--oxblood)'; input.placeholder='Reason required to submit'; return; }
+      state.decisions[id].status = 'overridden';
+      state.decisions[id].overrideReason = reason;
+      const e = employees.find(x=>x.id===id);
+      addLog('Reviewer', 'Override', 'override', `${id} — ${e.name}: overridden. Reason: "${reason}"`);
+      renderQueue();
+    },
+    escalate(id){
+      state.decisions[id].status = 'escalated';
+      const e = employees.find(x=>x.id===id);
+      addLog('Reviewer', 'Escalate', 'escalate', `${id} — ${e.name}: escalated to second-level review.`);
+      renderQueue();
+    }
+  };
+
+  function renderStats(){
+    const cfg = config();
+    let total = employees.length;
+    let overrideCount = 0, escalateCount = 0, actioned = 0;
+    let compFlagged = 0, compApproved = 0;
+
+    employees.forEach(e => {
+      const ev = evaluate(e, cfg);
+      const d = state.decisions[e.id];
+      if(!d) return;
+      if(d.status !== 'pending' && d.status !== 'closed') actioned++;
+      if(d.status === 'overridden') overrideCount++;
+      if(d.status === 'escalated') escalateCount++;
+      if(ev.isFlag){
+        compFlagged++;
+        if(d.status === 'approved' || d.status === 'auto') compApproved++;
+      }
+    });
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statOverride').textContent = actioned ? Math.round(overrideCount/actioned*100)+'%' : '0%';
+    document.getElementById('statEscalate').textContent = actioned ? Math.round(escalateCount/actioned*100)+'%' : '0%';
+    document.getElementById('statCompFlag').textContent = compFlagged;
+    document.getElementById('statCompApprove').textContent = compApproved + ' / ' + compFlagged;
+  }
+
+  function renderChart(){
+    // tally override reasons by simple keyword bucket
+    const buckets = {'Comp concern':0,'Data quality':0,'Context missing':0,'Timing':0,'Other':0};
+    state.log.forEach(row => {
+      if(row.action !== 'Override') return;
+      const t = row.detail.toLowerCase();
+      if(t.includes('budget') || t.includes('comp') || t.includes('cycle')) buckets['Comp concern']++;
+      else if(t.includes('data') || t.includes('incorrect') || t.includes('wrong')) buckets['Data quality']++;
+      else if(t.includes('context') || t.includes('know') || t.includes('aware')) buckets['Context missing']++;
+      else if(t.includes('later') || t.includes('wait') || t.includes('timing') || t.includes('quarter')) buckets['Timing']++;
+      else buckets['Other']++;
+    });
+    const max = Math.max(1, ...Object.values(buckets));
+    const chart = document.getElementById('chart');
+    const total = Object.values(buckets).reduce((a,b)=>a+b,0);
+    if(total === 0){
+      chart.innerHTML = '<div class="empty-state" style="width:100%;">No overrides recorded yet in this session.</div>';
+      return;
+    }
+    chart.innerHTML = Object.entries(buckets).map(([label,val]) => `
+      <div class="bar-col">
+        <div class="bar-val">${val || ''}</div>
+        <div class="bar" style="height:${val ? Math.max(6,(val/max*100)) : 2}px;"></div>
+        <div class="bar-label">${label}</div>
+      </div>
+    `).join('');
+  }
+
+  // ---------- Config listeners ----------
+  document.getElementById('compaSlider').addEventListener('input', e => {
+    document.getElementById('compaVal').textContent = parseFloat(e.target.value).toFixed(2);
+    renderQueue();
+  });
+  document.getElementById('perfSlider').addEventListener('input', e => {
+    document.getElementById('perfVal').textContent = parseFloat(e.target.value).toFixed(2);
+    renderQueue();
+  });
+  ['chkPip','chkComp','chkPromo','chkAttr'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderQueue);
+  });
+
+  // initial render
+  renderQueue();
+  renderLog();
+})();
+</script>
+</body>
+</html>
